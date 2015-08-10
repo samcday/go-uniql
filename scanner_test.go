@@ -58,6 +58,50 @@ func TestScanNumber(t *testing.T) {
 	}
 }
 
+func TestScanNumberIllegal(t *testing.T) {
+	tok, pos, _ := makeScanner("123.").Scan()
+
+	if tok != ILLEGAL {
+		t.Errorf("Unexpected token received: %v", tok)
+	}
+	if pos.Col != 4 {
+		t.Errorf("Unexpected illegal pos: %v", pos)
+	}
+}
+
+func TestScanNumberIllegal2(t *testing.T) {
+	tok, pos, _ := makeScanner("123.123.").Scan()
+
+	if tok != ILLEGAL {
+		t.Errorf("Unexpected token received: %v", tok)
+	}
+	if pos.Col != 7 {
+		t.Errorf("Unexpected illegal pos: %v", pos)
+	}
+}
+
+func TestScanString(t *testing.T) {
+	tok, _, lit := makeScanner(`"test"`).Scan()
+
+	if tok != STRING {
+		t.Errorf("Unexpected token received: %v", tok)
+	}
+	if lit != "test" {
+		t.Errorf("Unexpected token lit received: '%v'", lit)
+	}
+}
+
+func TestScanStringUnterminated(t *testing.T) {
+	tok, pos, _ := makeScanner(`"test`).Scan()
+
+	if tok != ILLEGAL {
+		t.Errorf("Unexpected token received: %v", tok)
+	}
+	if pos.Col != 5 {
+		t.Errorf("Unexpected illegal pos: %v", pos)
+	}
+}
+
 func makeScanner(s string) *Scanner {
 	return NewScanner(strings.NewReader(s))
 }

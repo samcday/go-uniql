@@ -39,6 +39,9 @@ func (s *Scanner) Scan() (Token, Pos, string) {
 	} else if isDigit(ch) || ch == '.' {
 		s.unread()
 		return s.scanNumber()
+	} else if ch == '"' {
+		s.unread()
+		return s.scanString()
 	}
 
 	switch ch {
@@ -152,6 +155,25 @@ func (s *Scanner) scanNumber() (Token, Pos, string) {
 	}
 
 	return NUMBER, firstPos, buf.String()
+}
+
+func (s *Scanner) scanString() (Token, Pos, string) {
+	var buf bytes.Buffer
+
+	_, firstPos := s.read()
+
+	for {
+		if ch, pos := s.read(); ch == eof {
+			// Un-terminated string literal...
+			return ILLEGAL, pos, ""
+		} else if ch == '"' {
+			break
+		} else {
+			buf.WriteRune(ch)
+		}
+	}
+
+	return STRING, firstPos, buf.String()
 }
 
 func (s *Scanner) read() (rune, Pos) {
