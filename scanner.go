@@ -36,10 +36,43 @@ func (s *Scanner) Scan() (Token, Pos, string) {
 		s.unread()
 		tok, lit := s.scanIdentifier()
 		return tok, pos, lit
-	} else if isDigit(ch) {
+	} else if isDigit(ch) || ch == '.' {
 		s.unread()
-		tok, lit := s.scanNumber()
-		return tok, pos, lit
+		return s.scanNumber()
+	}
+
+	switch ch {
+	case '=':
+		if ch2, _ := s.read(); ch2 == '=' {
+			return EQ, pos, ""
+		}
+		s.unread()
+	case '(':
+		return LPAREN, pos, ""
+	case ')':
+		return RPAREN, pos, ""
+	case '!':
+		if ch2, _ := s.read(); ch2 == '=' {
+			return NEQ, pos, ""
+		}
+		s.unread()
+	case '>':
+		if ch2, _ := s.read(); ch2 == '=' {
+			return GTE, pos, ""
+		}
+		s.unread()
+		return GT, pos, ""
+	case '<':
+		if ch2, _ := s.read(); ch2 == '=' {
+			return LTE, pos, ""
+		}
+		s.unread()
+		return LT, pos, ""
+	case '~':
+		if ch2, _ := s.read(); ch2 == '=' {
+			return REG_MATCH, pos, ""
+		}
+		s.unread()
 	}
 
 	return ILLEGAL, pos, string(ch)
@@ -85,21 +118,40 @@ func (s *Scanner) scanIdentifier() (Token, string) {
 	return IDENTIFIER, ident
 }
 
-func (s *Scanner) scanNumber() (Token, string) {
+func (s *Scanner) scanNumber() (Token, Pos, string) {
 	var buf bytes.Buffer
+	fp := false
+
+	_, firstPos := s.read()
+	s.unread()
 
 	for {
-		if ch, _ := s.read(); ch == eof {
+		ch, pos := s.read()
+		if ch == eof {
 			break
-		} else if !isDigit(ch) && ch != '.' {
+		} else if ch == '.' {
+			// Can't have multiple floating points...
+			if fp {
+				return ILLEGAL, pos, string(ch)
+			}
+
+			// Period must be followed by a digit.
+			ch2, pos2 := s.read()
+			if !isDigit(ch2) {
+				return ILLEGAL, pos2, string(ch2)
+			}
+
+			fp = true
+			s.unread()
+		} else if !isDigit(ch) {
 			s.unread()
 			break
-		} else {
-			buf.WriteRune(ch)
 		}
+
+		buf.WriteRune(ch)
 	}
 
-	return NUMBER, buf.String()
+	return NUMBER, firstPos, buf.String()
 }
 
 func (s *Scanner) read() (rune, Pos) {
